@@ -1,0 +1,2 @@
+JARVIS Android Project — A-IDE/AndroidIDE build fix
+Gradle Wrapper bootstrap: 8.13
