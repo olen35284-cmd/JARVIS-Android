@@ -4,117 +4,110 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.widget.Button
-import android.widget.EditText
 import android.widget.TextView
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import java.util.Locale
 
-class MainActivity : ComponentActivity(), TextToSpeech.OnInitListener {
-    private lateinit var chat: TextView
-    private lateinit var status: TextView
-    private lateinit var input: EditText
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var tvLog: TextView
+    private lateinit var tvStatus: TextView
+    private lateinit var btnMic: Button
     private lateinit var tts: TextToSpeech
-    private var speech: SpeechRecognizer? = null
+    private lateinit var speechRecognizer: SpeechRecognizer
+    private var ttsReady = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        chat = findViewById(R.id.chat)
-        status = findViewById(R.id.status)
-        input = findViewById(R.id.input)
-        tts = TextToSpeech(this, this)
+        tvLog = findViewById(R.id.tvLog)
+        tvStatus = findViewById(R.id.tvStatus)
+        btnMic = findViewById(R.id.btnMic)
 
-        findViewById<Button>(R.id.send).setOnClickListener {
-            process(input.text.toString())
-            input.text.clear()
-        }
-
-        findViewById<Button>(R.id.mic).setOnClickListener {
-            startVoice()
-        }
-    }
-
-    private fun process(text: String) {
-        if (text.isBlank()) return
-        add("Вы: $text")
-        val lower = text.lowercase(Locale("ru", "RU"))
-
-        val answer = when {
-            lower.contains("привет") -> "Здравствуйте, босс. JARVIS к вашим услугам."
-            lower.contains("как дела") -> "Все системы в норме. Пока вы не продали мои серверы."
-            lower.contains("который час") -> {
-                java.text.SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date())
-                    .let { "Сейчас $it, босс." }
+        tts = TextToSpeech(this) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                tts.language = Locale("ru", "RU")
+                ttsReady = true
             }
-            lower.contains("кто ты") -> "Я JARVIS — ваша первая версия персонального голосового помощника."
-            lower.contains("спасибо") -> "Всегда пожалуйста, босс."
-            else -> "Команда принята. В этой версии я пока работаю без подключения к внешней нейросети."
         }
 
-        add("JARVIS: $answer")
-        tts.speak(answer, TextToSpeech.QUEUE_FLUSH, null, "jarvis")
-    }
-
-    private fun add(line: String) {
-        chat.append("$line\n")
-        status.text = "Готов к следующей команде."
-    }
-
-    private fun startVoice() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-            != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 10)
-            return
-        }
-
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            status.text = "Распознавание речи недоступно на устройстве."
-            return
-        }
-
-        speech?.destroy()
-        speech = SpeechRecognizer.createSpeechRecognizer(this)
-        speech?.setRecognitionListener(object : android.speech.RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) { status.text = "Слушаю, босс..." }
-            override fun onResults(results: Bundle?) {
-                val values = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                input.setText(values?.firstOrNull() ?: "")
-                if (!values.isNullOrEmpty()) process(values.first())
-            }
-            override fun onError(error: Int) { status.text = "Не удалось распознать речь." }
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
+        speechRecognizer.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) { tvStatus.text = "JARVIS: СЛУШАЮ..." }
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() {}
+            override fun onEndOfSpeech() { tvStatus.text = "JARVIS ONLINE" }
+            override fun onError(error: Int) {
+                tvStatus.text = "JARVIS ONLINE"
+                appendLog("JARVIS: Не расслышал, повтори")
+            }
+            override fun onResults(results: Bundle?) {
+                val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull() ?: return
+                appendLog("Вы: $text")
+                handleCommand(text.lowercase())
+            }
             override fun onPartialResults(partialResults: Bundle?) {}
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
 
+        btnMic.setOnClickListener {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
+            } else {
+                startListening()
+            }
+        }
+
+        appendLog("JARVIS: Система запущена.")
+        speak("Система запущена")
+    }
+
+    private fun startListening() {
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ru-RU")
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Слушаю, босс...")
         }
-        speech?.startListening(intent)
+        speechRecognizer.startListening(intent)
     }
 
-    override fun onInit(statusCode: Int) {
-        if (statusCode == TextToSpeech.SUCCESS) {
-            tts.language = Locale("ru", "RU")
-            tts.setSpeechRate(0.95f)
+    private fun handleCommand(command: String) {
+        when {
+            command.contains("ютуб") -> { openApp("com.google.android.youtube", "https://youtube.com"); speak("Открываю YouTube") }
+            command.contains("вк") -> { openApp("com.vkontakte.android", "https://vk.com"); speak("Открываю ВКонтакте") }
+            command.contains("телеграм") -> { openApp("org.telegram.messenger", "https://t.me"); speak("Открываю Telegram") }
+            command.contains("время") -> {
+                val time = java.text.SimpleDateFormat("HH:mm", Locale.getDefault()).format(java.util.Date())
+                speak("Сейчас $time"); appendLog("JARVIS: Сейчас $time")
+            }
+            command.contains("привет") -> { speak("Привет! Я JARVIS"); appendLog("JARVIS: Привет!") }
+            command.contains("как дела") -> speak("Всё отлично, работаю в штатном режиме")
+            command.contains("спасибо") -> speak("Всегда рад помочь")
+            command.contains("пока") -> { speak("Отключаюсь"); finish() }
+            else -> { appendLog("JARVIS: Команда не распознана"); speak("Не знаю такой команды") }
         }
     }
+
+    private fun openApp(packageName: String, fallbackUrl: String) {
+        val intent = packageManager.getLaunchIntentForPackage(packageName)
+        if (intent != null) startActivity(intent)
+        else startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(fallbackUrl)))
+    }
+
+    private fun speak(text: String) { if (ttsReady) tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null) }
+    private fun appendLog(text: String) { tvLog.append("$text\n") }
 
     override fun onDestroy() {
-        speech?.destroy()
-        tts.shutdown()
         super.onDestroy()
+        tts.stop(); tts.shutdown(); speechRecognizer.destroy()
     }
 }

@@ -1,0 +1,11 @@
+R_DEF: Internal format may change without notice
+local
+id chat
+id input
+id mic
+id send
+id status
+id title
+layout activity_main
+string app_name
+style Theme.JARVIS
