@@ -10,7 +10,7 @@
         android:id="@+id/tvStatus"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
+        android:layout_marginTop="24dp"
         android:text="JARVIS ONLINE"
         android:textColor="#00D9FF"
         android:textSize="16sp"
@@ -26,7 +26,7 @@
         android:layout_height="wrap_content"
         android:text="◉"
         android:textColor="#00D9FF"
-        android:textSize="120sp"
+        android:textSize="100sp"
         app:layout_constraintTop_toBottomOf="@id/tvStatus"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -37,9 +37,9 @@
         android:layout_height="0dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="8dp"
         app:layout_constraintTop_toBottomOf="@id/tvCore"
-        app:layout_constraintBottom_toTopOf="@id/btnMic"
+        app:layout_constraintBottom_toTopOf="@id/inputRow"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -53,11 +53,50 @@
             android:lineSpacingExtra="6dp" />
     </ScrollView>
 
+    <LinearLayout
+        android:id="@+id/inputRow"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        app:layout_constraintBottom_toTopOf="@id/btnMic"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <EditText
+            android:id="@+id/etInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Напиши команду..."
+            android:textColorHint="#4A7A8C"
+            android:textColor="#8FE8FF"
+            android:textSize="14sp"
+            android:backgroundTint="#00D9FF"
+            android:inputType="text"
+            android:imeOptions="actionSend"
+            android:maxLines="1" />
+
+        <Button
+            android:id="@+id/btnSend"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="➤"
+            android:textColor="#00D9FF"
+            android:textSize="18sp"
+            android:backgroundTint="#001A2E"
+            android:minWidth="48dp" />
+    </LinearLayout>
+
     <Button
         android:id="@+id/btnMic"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="40dp"
+        android:layout_marginBottom="24dp"
         android:text="🎤 ГОВОРИТЬ"
         android:textColor="#00D9FF"
         android:backgroundTint="#001A2E"
