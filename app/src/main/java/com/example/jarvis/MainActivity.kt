@@ -8,7 +8,9 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
+import android.view.inputmethod.EditorInfo
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -20,6 +22,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvLog: TextView
     private lateinit var tvStatus: TextView
     private lateinit var btnMic: Button
+    private lateinit var btnSend: Button
+    private lateinit var etInput: EditText
     private lateinit var tts: TextToSpeech
     private lateinit var speechRecognizer: SpeechRecognizer
     private var ttsReady = false
@@ -31,6 +35,8 @@ class MainActivity : AppCompatActivity() {
         tvLog = findViewById(R.id.tvLog)
         tvStatus = findViewById(R.id.tvStatus)
         btnMic = findViewById(R.id.btnMic)
+        btnSend = findViewById(R.id.btnSend)
+        etInput = findViewById(R.id.etInput)
 
         tts = TextToSpeech(this) { status ->
             if (status == TextToSpeech.SUCCESS) {
@@ -68,8 +74,25 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        btnSend.setOnClickListener { sendText() }
+
+        etInput.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEND) {
+                sendText()
+                true
+            } else false
+        }
+
         appendLog("JARVIS: Система запущена.")
         speak("Система запущена")
+    }
+
+    private fun sendText() {
+        val text = etInput.text.toString().trim()
+        if (text.isEmpty()) return
+        etInput.setText("")
+        appendLog("Вы: $text")
+        handleCommand(text.lowercase())
     }
 
     private fun startListening() {
